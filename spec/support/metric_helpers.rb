@@ -8,7 +8,11 @@ module MetricHelpers
 
     def metric_options(options = nil)
       return options unless options.nil? || options.is_a?(Hash)
-      Datadog::Metrics.metric_options(options)
+
+      instance_options = { tags: [] }
+      instance_options[:tags] << "#{Datadog::Ext::Metrics::TAG_ENV}:#{env}" if respond_to?(:env)
+
+      Datadog::Metrics.metric_options(instance_options, options)
     end
 
     def check_options!(options)

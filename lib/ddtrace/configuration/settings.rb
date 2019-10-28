@@ -74,7 +74,7 @@ module Datadog
               t.configure(options)
               t.class.log = options[:log] if options[:log]
               t.set_tags(options[:tags]) if options[:tags]
-              t.set_tags(env: options[:env]) if options[:env]
+              t.env = options[:env] if options[:env]
               t.class.debug_logging = options.fetch(:debug, false)
             end
           end

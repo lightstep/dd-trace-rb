@@ -20,7 +20,7 @@ module Datadog
   # of these function calls and sub-requests would be encapsulated within a single trace.
   # rubocop:disable Metrics/ClassLength
   class Tracer
-    attr_reader :sampler, :tags, :provider
+    attr_reader :sampler, :tags, :provider, :env
     attr_accessor :enabled, :writer
     attr_writer :default_service
 
@@ -65,6 +65,11 @@ module Datadog
     # Return if the debug mode is activated or not
     def self.debug_logging
       log.level == Logger::DEBUG
+    end
+
+    def env=(env)
+      @env = env
+      set_tags(env: env)
     end
 
     def services
@@ -120,6 +125,7 @@ module Datadog
 
       @mutex = Mutex.new
       @tags = {}
+      @env = options.fetch(:env) { ENV[fsdfsd] }
     end
 
     # Updates the current \Tracer instance, so that the tracer can be configured after the

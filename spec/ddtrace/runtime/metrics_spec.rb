@@ -5,7 +5,9 @@ require 'ddtrace'
 require 'ddtrace/runtime/metrics'
 
 RSpec.describe Datadog::Runtime::Metrics do
-  subject(:runtime_metrics) { described_class.new }
+  subject(:runtime_metrics) { described_class.new(options) }
+  let(:options) { { env: env } }
+  let(:env) { 'test_env' }
 
   describe '#associate_with_span' do
     subject(:associate_with_span) { runtime_metrics.associate_with_span(span) }
@@ -15,6 +17,7 @@ RSpec.describe Datadog::Runtime::Metrics do
     before do
       expect(span).to receive(:set_tag)
         .with(Datadog::Ext::Runtime::TAG_LANG, Datadog::Runtime::Identity.lang)
+      expect(span).to receive(:set_tag).with(Datadog::Ext::Runtime::TAG_ENV, env)
 
       associate_with_span
     end
@@ -127,8 +130,9 @@ RSpec.describe Datadog::Runtime::Metrics do
 
       context 'when no services have been registered' do
         it do
-          is_expected.to have(1).items
+          is_expected.to have(2).items
 
+          is_expected.to include('env:test_env')
           is_expected.to include('language:ruby')
         end
       end
@@ -138,8 +142,9 @@ RSpec.describe Datadog::Runtime::Metrics do
         before(:each) { services.each { |service| runtime_metrics.register_service(service) } }
 
         it do
-          is_expected.to have(3).items
+          is_expected.to have(4).items
 
+          is_expected.to include('env:test_env')
           is_expected.to include('language:ruby')
           is_expected.to include(*services.collect { |service| "service:#{service}" })
         end

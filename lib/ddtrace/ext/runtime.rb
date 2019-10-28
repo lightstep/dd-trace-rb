@@ -9,6 +9,7 @@ module Datadog
       LANG_VERSION = RUBY_VERSION
       TRACER_VERSION = Datadog::VERSION::STRING
 
+      TAG_ENV = 'env'.freeze
       TAG_LANG = 'language'.freeze
 
       # Metrics
@@ -19,6 +20,7 @@ module Datadog
         METRIC_GC_PREFIX = 'runtime.ruby.gc'.freeze
         METRIC_THREAD_COUNT = 'runtime.ruby.thread_count'.freeze
 
+        TAG_ENV = 'env'.freeze
         TAG_SERVICE = 'service'.freeze
       end
     end

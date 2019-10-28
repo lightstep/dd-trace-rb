@@ -1930,7 +1930,8 @@ Datadog.configure do |c|
   # Optionally, you can configure the Statsd instance used for sending runtime metrics.
   # Statsd is automatically configured with default settings if `dogstatsd-ruby` is available.
   # You can configure with host and port of Datadog agent; defaults to 'localhost:8125'.
-  c.runtime_metrics statsd: Datadog::Statsd.new
+  c.runtime_metrics statsd: Datadog::Statsd.new,
+                    env: ENV['DATADOG_ENV'] # You can also set DATADOG_ENV=environment to configure this.
 end
 ```
 
@@ -1948,6 +1949,7 @@ In addition, all metrics include the following tags:
 
 | Name         | Description                                             |
 | ------------ | ------------------------------------------------------- |
+| `env`        | Application environment. (e.g. `production`)            |
 | `language`   | Programming language traced. (e.g. `ruby`)              |
 | `service`    | List of services this associated with this metric.      |
 
