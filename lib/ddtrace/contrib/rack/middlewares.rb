@@ -15,7 +15,7 @@ module Datadog
       # in the Rack environment so that it can be retrieved by the underlying
       # application. If request tags are not set by the app, they will be set using
       # information available at the Rack level.
-      # rubocop:disable Metrics/ClassLength
+      # disable:rubocop:disable Metrics/ClassLength
       class TraceMiddleware
         # DEPRECATED: Remove in 1.0 in favor of Datadog::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN
         # This constant will remain here until then, for backwards compatibility.
@@ -46,14 +46,14 @@ module Datadog
 
           # Extract distributed tracing context before creating any spans,
           # so that all spans will be added to the distributed trace.
-          if configuration[:distributed_tracing]
-            context = HTTPPropagator.extract(env)
-            tracer.provider.context = context if context.trace_id
-          end
+          # if configuration[:distributed_tracing]
+          #   context = HTTPPropagator.extract(env)
+          #   tracer.provider.context = context if context.trace_id
+          # end
 
           # [experimental] create a root Span to keep track of frontend web servers
           # (i.e. Apache, nginx) if the header is properly set
-          frontend_span = compute_queue_time(env, tracer)
+          # frontend_span = compute_queue_time(env, tracer)
 
           trace_options = {
             service: configuration[:service_name],
@@ -75,11 +75,11 @@ module Datadog
           #   # TODO: For backwards compatibility; this attribute is deprecated.
           #   env[:datadog_rack_request_span] = env[RACK_REQUEST_SPAN]
           # end
-          env[:datadog_rack_request_span] = env[RACK_REQUEST_SPAN]
+          # env[:datadog_rack_request_span] = env[RACK_REQUEST_SPAN]
 
           # Copy the original env, before the rest of the stack executes.
           # Values may change; we want values before that happens.
-          original_env = env.dup
+          # original_env = env.dup
 
           # call the rest of the stack
           status, headers, response = @app.call(env)
@@ -104,12 +104,12 @@ module Datadog
           # the result for this request; `resource` and `tags` are expected to
           # be set in another level but if they're missing, reasonable defaults
           # are used.
-          set_request_tags!(request_span, env, status, headers, response, original_env)
+          set_request_tags!(request_span, env, status, headers, response, {})
 
           # ensure the request_span is finished and the context reset;
           # this assumes that the Rack middleware creates a root span
           request_span.finish
-          frontend_span.finish unless frontend_span.nil?
+          # frontend_span.finish unless frontend_span.nil?
 
           # TODO: Remove this once we change how context propagation works. This
           # ensures we clean thread-local variables on each HTTP request avoiding
@@ -125,7 +125,7 @@ module Datadog
           end
         end
 
-        # rubocop:disable Metrics/AbcSize
+        # disable:rubocop:disable Metrics/AbcSize
         def set_request_tags!(request_span, env, status, headers, response, original_env)
           # http://www.rubydoc.info/github/rack/rack/file/SPEC
           # The source of truth in Rack is the PATH_INFO key that holds the
@@ -138,61 +138,61 @@ module Datadog
           # REQUEST_URI is only available depending on what web server is running though.
           # So when its not available, we want the original, unmutated PATH_INFO, which
           # is just the relative path without query strings.
-          url = env['REQUEST_URI'] || original_env['PATH_INFO']
-          request_headers = parse_request_headers(env)
-          response_headers = parse_response_headers(headers || {})
+          # url = env['REQUEST_URI'] || original_env['PATH_INFO']
+          # request_headers = parse_request_headers(env)
+          # response_headers = parse_response_headers(headers || {})
 
           request_span.resource ||= resource_name_for(env, status)
 
           # Associate with runtime metrics
-          Datadog.runtime_metrics.associate_with_span(request_span)
+          # Datadog.runtime_metrics.associate_with_span(request_span)
 
           # Set analytics sample rate
-          if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
-            Contrib::Analytics.set_sample_rate(request_span, configuration[:analytics_sample_rate])
-          end
+          # if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+          #   Contrib::Analytics.set_sample_rate(request_span, configuration[:analytics_sample_rate])
+          # end
 
-          if request_span.get_tag(Datadog::Ext::HTTP::METHOD).nil?
-            request_span.set_tag(Datadog::Ext::HTTP::METHOD, env['REQUEST_METHOD'])
-          end
+          # if request_span.get_tag(Datadog::Ext::HTTP::METHOD).nil?
+          #   request_span.set_tag(Datadog::Ext::HTTP::METHOD, env['REQUEST_METHOD'])
+          # end
 
-          if request_span.get_tag(Datadog::Ext::HTTP::URL).nil?
-            options = configuration[:quantize]
-            request_span.set_tag(Datadog::Ext::HTTP::URL, Datadog::Quantization::HTTP.url(url, options))
-          end
+          # if request_span.get_tag(Datadog::Ext::HTTP::URL).nil?
+          #   options = configuration[:quantize]
+          #   request_span.set_tag(Datadog::Ext::HTTP::URL, Datadog::Quantization::HTTP.url(url, options))
+          # end
 
-          if request_span.get_tag(Datadog::Ext::HTTP::BASE_URL).nil?
-            request_obj = ::Rack::Request.new(env)
+          # if request_span.get_tag(Datadog::Ext::HTTP::BASE_URL).nil?
+          #   request_obj = ::Rack::Request.new(env)
 
-            base_url = if request_obj.respond_to?(:base_url)
-                         request_obj.base_url
-                       else
-                         # Compatibility for older Rack versions
-                         request_obj.url.chomp(request_obj.fullpath)
-                       end
+          #   base_url = if request_obj.respond_to?(:base_url)
+          #                request_obj.base_url
+          #              else
+          #                # Compatibility for older Rack versions
+          #                request_obj.url.chomp(request_obj.fullpath)
+          #              end
 
-            request_span.set_tag(Datadog::Ext::HTTP::BASE_URL, base_url)
-          end
+          #   request_span.set_tag(Datadog::Ext::HTTP::BASE_URL, base_url)
+          # end
 
-          if request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE).nil? && status
-            request_span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, status)
-          end
+          # if request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE).nil? && status
+          #   request_span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, status)
+          # end
 
-          # Request headers
-          request_headers.each do |name, value|
-            request_span.set_tag(name, value) if request_span.get_tag(name).nil?
-          end
+          # # Request headers
+          # request_headers.each do |name, value|
+          #   request_span.set_tag(name, value) if request_span.get_tag(name).nil?
+          # end
 
-          # Response headers
-          response_headers.each do |name, value|
-            request_span.set_tag(name, value) if request_span.get_tag(name).nil?
-          end
+          # # Response headers
+          # response_headers.each do |name, value|
+          #   request_span.set_tag(name, value) if request_span.get_tag(name).nil?
+          # end
 
           # detect if the status code is a 5xx and flag the request span as an error
           # unless it has been already set by the underlying framework
-          if status.to_s.start_with?('5') && request_span.status.zero?
-            request_span.status = 1
-          end
+          # if status.to_s.start_with?('5') && request_span.status.zero?
+          #   request_span.status = 1
+          # end
         end
 
         private
