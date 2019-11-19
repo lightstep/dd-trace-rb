@@ -5,16 +5,18 @@
 `lightstep-ddtrace-rb` is LightStep's fork of Datadog’s tracing client for Ruby. It is used to trace requests as they flow across web servers,
 databases and microservices so that developers have great visiblity into bottlenecks and troublesome requests.
 
-## Configure the tracing client to send data to LightStep
+## Getting Started
+
+### Configure the tracing client to send data to LightStep
 
 To send data from your system to LightStep, you need to configure the agent to: 
 
 * Point to your satellites
 * Send global tags required by LightStep to ingest and display your data
 
-### Send data to your satellites
+#### Send data to your satellites
 
-#### On-Premise satellites
+##### On-Premise satellites
 
 If your on-premise satellites accept data over plain HTTP, follow the instructions below. If they require HTTPS you will have to use the [LightStep reverse proxy](https://github.com/lightstep/reverse-proxy). See the instructions for [public satellites](#public-satellites).
 
@@ -25,7 +27,7 @@ DD_AGENT_HOST=<Satellite host>
 DD_TRACE_AGENT_PORT=<Satellite port>
 ```
 
-#### Public satellites
+##### Public satellites
 
 LightStep's public satellites require data to be transmitted using HTTPS. Since Datadog's Ruby client transmits data over plain HTTP you will have use the [LightStep reverse proxy](https://github.com/lightstep/reverse-proxy), which will accept data over plain HTTP and forward it the public satellites using HTTPS. By default the reverse proxy will forward requests to `ingest.lightstep.com`, but can be configured by passing additional options. See below for details.
 
@@ -67,20 +69,19 @@ Datadog.configure do |c|
     'lightstep.access_token' => 'my-token'
   }
 end
+```
 
-## Getting started
+## Additional Resources
 
-For a basic product overview, check out our [setup documentation][setup docs].
+For an overview of using the LightStep Datadog Ruby Tracing Client see the [ruby auto-instrumentation overview][auto-instrumentation overview].
 
-For installation, configuration, and details about using the API, check out our [API documentation][api docs] and [gem documentation][gem docs].
+For installation, configuration, and details about using the API, check out our [API documentation][api docs]
 
-For descriptions of terminology used in APM, take a look at the [official documentation][visualization docs].
+## Licensing
 
-For contributing, checkout the [contribution guidelines][contribution docs] and [development guide][development docs].
+This is a fork of the [dd-trace-rb][dd-trace-rb repo] and retains the original Datadog license and copyright. See the [license][license file] for more details.
 
-[setup docs]: https://docs.datadoghq.com/tracing/setup/ruby/
-[api docs]: https://github.com/DataDog/dd-trace-rb/blob/master/docs/GettingStarted.md
-[gem docs]: http://gems.datadoghq.com/trace/docs/
-[visualization docs]: https://docs.datadoghq.com/tracing/visualization/
-[contribution docs]: https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md
-[development docs]: https://github.com/DataDog/dd-trace-rb/blob/master/docs/DevelopmentGuide.md
+[auto-instrumentation overview]: https://docs.lightstep.com/docs/ruby-auto-instrumentation#section-configure-libraries
+[api docs]: https://github.com/lightstep/dd-trace-rb/blob/master/docs/GettingStarted.md
+[dd-trace-rb repo]: https://github.com/DataDog/dd-trace-rb
+[license file]: https://github.com/lightstep/dd-trace-rb/blob/master/LICENSE
