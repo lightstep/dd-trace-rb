@@ -77,6 +77,14 @@ For an overview of using the LightStep Datadog Ruby Tracing Client see the [ruby
 
 For installation, configuration, and details about using the API, check out our [API documentation][api docs]
 
+## Versioning
+
+lightstep-dd-trace-rb follows its own versioning scheme. The table below shows the corresponding dd-trace-rb versions.
+
+| lightstep-dd-trace-rb version | dd-trace-rb version |
+|-------------------------------|---------------------|
+| v0.1.0                        | v0.29.0             |
+
 ## Licensing
 
 This is a fork of [dd-trace-rb][dd-trace-rb repo] and retains the original Datadog license and copyright. See the [license][license file] for more details.
