@@ -90,6 +90,10 @@ ls-trace follows its own versioning scheme. The table below shows the correspond
 |------------------|---------------------|
 | v0.1.0           | v0.29.0             |
 
+## Support
+
+Contact `support@lightstep.com` for additional questions and resources, or to be added to our community slack channel.
+
 ## Licensing
 
 This is a fork of [dd-trace-rb][dd-trace-rb repo] and retains the original Datadog license and copyright. See the [license][license file] for more details.
