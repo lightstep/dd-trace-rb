@@ -2,10 +2,15 @@
 
 [![CircleCI](https://circleci.com/gh/lightstep/dd-trace-rb/tree/master.svg?style=svg)](https://circleci.com/gh/lightstep/dd-trace-rb/tree/master)
 
-`ls-trace` is LightStep's fork of Datadog’s tracing client for Ruby. It is used to trace requests as they flow across web servers,
-databases and microservices so that developers have great visiblity into bottlenecks and troublesome requests.
+Datadog has generously announced the [donation](https://www.datadoghq.com/blog/opentelemetry-instrumentation) of their tracer libraries to the [OpenTelemety](https://opentelemetry.io/), project. Auto-instrumentation is a core feature of these libraries, making it possible to create and collect telemetry data without needing to change your code. LightStep wants you to be able to use these libraries now! `ls-trace` is LightStep's fork of Datadog’s tracing client for Ruby. You can install and use it to take advantage of auto-instrumentation without waiting for OpenTelemetry. Each LightStep agent is [“pinned” to a Datadog release](#versioning) and is fully supported by LightStep’s Customer Success team.
 
 ## Getting Started
+
+### Install the Gem
+
+```
+gem install ls-trace
+```
 
 ### Configure the tracing client to send data to LightStep
 
