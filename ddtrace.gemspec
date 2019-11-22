@@ -5,7 +5,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'ddtrace/version'
 
 Gem::Specification.new do |spec|
-  spec.name                  = 'lightstep-ddtrace'
+  spec.name                  = 'ls-trace'
   spec.version               = Datadog::VERSION::STRING
   spec.required_ruby_version = ">= #{Datadog::VERSION::MINIMUM_RUBY_VERSION}"
   spec.authors               = ['lightstep']

@@ -1,8 +1,8 @@
-# LightStep Datadog Trace Client
+# LS Trace Client
 
 [![CircleCI](https://circleci.com/gh/lightstep/dd-trace-rb/tree/master.svg?style=svg)](https://circleci.com/gh/lightstep/dd-trace-rb/tree/master)
 
-`lightstep-ddtrace-rb` is LightStep's fork of Datadog’s tracing client for Ruby. It is used to trace requests as they flow across web servers,
+`ls-trace` is LightStep's fork of Datadog’s tracing client for Ruby. It is used to trace requests as they flow across web servers,
 databases and microservices so that developers have great visiblity into bottlenecks and troublesome requests.
 
 ## Getting Started
@@ -79,11 +79,11 @@ For installation, configuration, and details about using the API, check out our 
 
 ## Versioning
 
-lightstep-dd-trace-rb follows its own versioning scheme. The table below shows the corresponding dd-trace-rb versions.
+ls-trace follows its own versioning scheme. The table below shows the corresponding dd-trace-rb versions.
 
-| lightstep-dd-trace-rb version | dd-trace-rb version |
-|-------------------------------|---------------------|
-| v0.1.0                        | v0.29.0             |
+| ls-trace version | dd-trace-rb version |
+|------------------|---------------------|
+| v0.1.0           | v0.29.0             |
 
 ## Licensing
 
