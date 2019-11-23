@@ -13,7 +13,7 @@ Gem::Specification.new do |spec|
 
   spec.summary     = 'LightStep fork of dd-trace for tracing code for your Ruby applications'
   spec.description = <<-EOS.gsub(/^[\s]+/, '')
-    lightstep-ddtrace is LightStep's fork of Datadog’s tracing client for Ruby. It
+    ls-trace is LightStep's fork of Datadog’s tracing client for Ruby. It
     is used to trace requests as they flow across web servers, databases and
     microservices so that developers have great visiblity into bottlenecks and
     troublesome requests.

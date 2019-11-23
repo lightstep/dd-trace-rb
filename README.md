@@ -88,7 +88,7 @@ ls-trace follows its own versioning scheme. The table below shows the correspond
 
 | ls-trace version | dd-trace-rb version |
 |------------------|---------------------|
-| v0.1.0           | v0.29.0             |
+| v0.1.1           | v0.29.0             |
 
 ## Support
 
