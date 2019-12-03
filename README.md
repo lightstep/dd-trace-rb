@@ -23,8 +23,6 @@ To send data from your system to LightStep, you need to configure the tracing cl
 
 ##### On-Premise satellites
 
-If your on-premise satellites accept data over plain HTTP, follow the instructions below. If they require HTTPS you will have to use the [LightStep reverse proxy][ls-reverse-proxy]. See the instructions for [public satellites](#public-satellites) for more details.
-
 Set the following environment variables to the host and port of your satellite:
 
 ```
