@@ -18,6 +18,10 @@ RSpec.describe Datadog::DistributedTracing::Headers::B3Single do
     "http-#{name}".upcase!.tr('-', '_')
   end
 
+  def format_id(id)
+    format(Datadog::Ext::DistributedTracing::ID_FORMAT_STR, id)
+  end
+
   context '#inject!' do
     subject(:env) { {} }
     before(:each) { described_class.inject!(context, env) }
@@ -33,7 +37,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::B3Single do
                              span_id: 20000)
       end
 
-      it { is_expected.to eq(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE => '2710-4e20') }
+      it { is_expected.to eq(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE => "#{format_id(10000)}-#{format_id(20000)}") }
 
       [
         [-1, 0],
@@ -48,7 +52,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::B3Single do
                                  sampling_priority: value)
           end
 
-          it { is_expected.to eq(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE => "c350-ea60-#{expected}") }
+          it { is_expected.to eq(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE => "#{format_id(50000)}-#{format_id(60000)}-#{expected}") }
         end
       end
 
@@ -59,7 +63,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::B3Single do
                                origin: 'synthetics')
         end
 
-        it { is_expected.to eq(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE => '15f90-186a0') }
+        it { is_expected.to eq(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE => "#{format_id(90000)}-#{format_id(100000)}") }
       end
     end
   end
@@ -73,7 +77,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::B3Single do
     end
 
     context 'with trace_id and span_id' do
-      let(:env) { { env_header(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE) => '15f90-186a0' } }
+      let(:env) { { env_header(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE) => "#{format_id(90000)}-#{format_id(100000)}" } }
 
       it { expect(context.trace_id).to eq(90000) }
       it { expect(context.span_id).to eq(100000) }
@@ -81,14 +85,14 @@ RSpec.describe Datadog::DistributedTracing::Headers::B3Single do
       it { expect(context.origin).to be_nil }
 
       context 'with sampling priority' do
-        let(:env) { { env_header(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE) => '15f90-186a0-1' } }
+        let(:env) { { env_header(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE) => "#{format_id(90000)}-#{format_id(100000)}-1" } }
         it { expect(context.trace_id).to eq(90000) }
         it { expect(context.span_id).to eq(100000) }
         it { expect(context.sampling_priority).to eq(1) }
         it { expect(context.origin).to be_nil }
 
         context 'with parent_id' do
-          let(:env) { { env_header(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE) => '15f90-186a0-1-4e20' } }
+          let(:env) { { env_header(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE) => "#{format_id(90000)}-#{format_id(100000)}-1-#{format_id(20000)}" } }
           it { expect(context.trace_id).to eq(90000) }
           it { expect(context.span_id).to eq(100000) }
           it { expect(context.sampling_priority).to eq(1) }
@@ -98,7 +102,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::B3Single do
     end
 
     context 'with trace_id' do
-      let(:env) { { env_header(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE) => '15f90' } }
+      let(:env) { { env_header(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE) => format_id(90000) } }
       it { is_expected.to be_nil }
     end
   end
