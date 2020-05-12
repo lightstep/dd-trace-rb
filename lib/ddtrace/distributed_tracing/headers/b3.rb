@@ -13,8 +13,8 @@ module Datadog
           return if context.nil?
 
           # DEV: We need these to be hex encoded
-          env[B3_HEADER_TRACE_ID] = context.trace_id.to_s(16)
-          env[B3_HEADER_SPAN_ID] = context.span_id.to_s(16)
+          env[B3_HEADER_TRACE_ID] = format(ID_FORMAT_STR, context.trace_id)
+          env[B3_HEADER_SPAN_ID] = format(ID_FORMAT_STR, context.span_id)
 
           unless context.sampling_priority.nil?
             sampling_priority = DistributedTracing::Headers::Helpers.clamp_sampling_priority(context.sampling_priority)

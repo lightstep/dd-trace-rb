@@ -18,7 +18,7 @@ module Datadog
           # DEV: `{SamplingState}` and `{ParentSpanId`}` are optional
 
           # DEV: We need these to be hex encoded
-          header = "#{context.trace_id.to_s(16)}-#{context.span_id.to_s(16)}"
+          header = "#{format(ID_FORMAT_STR, context.trace_id)}-#{format(ID_FORMAT_STR, context.span_id)}"
 
           unless context.sampling_priority.nil?
             sampling_priority = DistributedTracing::Headers::Helpers.clamp_sampling_priority(context.sampling_priority)
