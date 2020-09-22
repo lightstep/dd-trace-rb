@@ -2,8 +2,7 @@ require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace/contrib/rails/rails_helper'
 
 RSpec.describe 'Rails trace analytics' do
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   before(:each) do
     Datadog.configure do |c|
@@ -12,19 +11,18 @@ RSpec.describe 'Rails trace analytics' do
       # This is because Rails instrumentation normally defers patching until #after_initialize
       # when it activates and configures each of the Rails components with application details.
       # We aren't initializing a full Rails application here, so the patch doesn't auto-apply.
-      c.use :action_pack
+      c.use :action_pack, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
     Datadog.registry[:rails].reset_configuration!
+    Datadog.registry[:action_pack].reset_configuration!
     example.run
     Datadog.registry[:rails].reset_configuration!
+    Datadog.registry[:action_pack].reset_configuration!
   end
-
-  let(:span) { spans.first }
-  let(:spans) { tracer.writer.spans(:keep) }
 
   describe 'for a controller action' do
     subject(:result) { action.call(env) }

@@ -5,6 +5,12 @@ require 'rspec/collection_matchers'
 require 'webmock/rspec'
 require 'climate_control'
 
+# +SimpleCov.start+ must be invoked before any application code is loaded
+require 'simplecov'
+SimpleCov.start do
+  formatter SimpleCov::Formatter::SimpleFormatter
+end
+
 require 'ddtrace/encoding'
 require 'ddtrace/tracer'
 require 'ddtrace/span'
@@ -13,10 +19,12 @@ require 'support/configuration_helpers'
 require 'support/container_helpers'
 require 'support/faux_transport'
 require 'support/faux_writer'
+require 'support/health_metric_helpers'
 require 'support/http_helpers'
 require 'support/log_helpers'
 require 'support/metric_helpers'
-require 'support/health_metric_helpers'
+require 'support/network_helpers'
+require 'support/platform_helpers'
 require 'support/span_helpers'
 require 'support/spy_transport'
 require 'support/synchronization_helpers'
@@ -36,10 +44,11 @@ WebMock.disable!
 RSpec.configure do |config|
   config.include ConfigurationHelpers
   config.include ContainerHelpers
+  config.include HealthMetricHelpers
   config.include HttpHelpers
   config.include LogHelpers
   config.include MetricHelpers
-  config.include HealthMetricHelpers
+  config.include NetworkHelpers
   config.include SpanHelpers
   config.include SynchronizationHelpers
   config.include TracerHelpers
@@ -57,3 +66,6 @@ RSpec.configure do |config|
   config.warnings = true
   config.order = :random
 end
+
+# Helper matchers
+RSpec::Matchers.define_negated_matcher :not_be, :be

@@ -6,7 +6,7 @@ RSpec.shared_examples_for 'span' do
   end
 
   it 'has tag with target port' do
-    expect(span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(port.to_s)
+    expect(span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(port.to_f)
   end
 
   it 'has tag with method' do
@@ -18,7 +18,8 @@ RSpec.shared_examples_for 'span' do
   end
 
   it 'has tag with status code' do
-    expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status)
+    expected_status = status ? status.to_s : nil
+    expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(expected_status)
   end
 
   it 'has resource set up properly' do
@@ -43,7 +44,7 @@ RSpec.shared_examples_for 'instrumented request' do
 
   describe 'instrumented request' do
     it 'creates a span' do
-      expect { request }.to change { tracer.writer.spans.first }.to be_instance_of(Datadog::Span)
+      expect { request }.to change { fetch_spans.first }.to be_instance_of(Datadog::Span)
     end
 
     it 'returns response' do
@@ -52,10 +53,10 @@ RSpec.shared_examples_for 'instrumented request' do
 
     describe 'created span' do
       subject(:span) do
-        tracer.writer.spans.select { |span| span.name == 'ethon.request' }.first
+        spans.select { |span| span.name == 'ethon.request' }.first
       end
 
-      context 'response is successfull' do
+      context 'response is successful' do
         before { request }
 
         it_behaves_like 'span'
@@ -112,7 +113,7 @@ RSpec.shared_examples_for 'instrumented request' do
 
     context 'distributed tracing default' do
       let(:return_headers) { true }
-      let(:span) { tracer.writer.spans.select { |span| span.name == 'ethon.request' }.first }
+      let(:span) { spans.select { |span| span.name == 'ethon.request' }.first }
 
       shared_examples_for 'propagating distributed headers' do
         let(:return_headers) { true }

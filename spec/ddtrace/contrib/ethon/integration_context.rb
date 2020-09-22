@@ -1,10 +1,19 @@
+require 'webrick'
+
 RSpec.shared_context 'integration context' do
   before(:all) do
     @log_buffer = StringIO.new # set to $stderr to debug
     log = WEBrick::Log.new(@log_buffer, WEBrick::Log::DEBUG)
     access_log = [[@log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]]
 
-    server = WEBrick::HTTPServer.new(Port: 0, Logger: log, AccessLog: access_log)
+    init_signal = Queue.new
+    server = WEBrick::HTTPServer.new(
+      Port: 0,
+      Logger: log,
+      AccessLog: access_log,
+      StartCallback: -> { init_signal.push(1) }
+    )
+
     server.mount_proc '/' do |req, res|
       sleep(1) if req.query['simulate_timeout']
       res.status = (req.query['status'] || req.body['status']).to_i
@@ -19,6 +28,8 @@ RSpec.shared_context 'integration context' do
       end
     end
     Thread.new { server.start }
+    init_signal.pop
+
     @server = server
     @port = server[:Port]
   end
@@ -45,8 +56,7 @@ RSpec.shared_context 'integration context' do
     url
   end
 
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   before do
     Datadog.configure do |c|

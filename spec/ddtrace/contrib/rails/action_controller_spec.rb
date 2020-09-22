@@ -1,10 +1,9 @@
 require 'ddtrace/contrib/rails/rails_helper'
 
-RSpec.describe 'ActionController tracing' do
-  let(:tracer) { get_test_tracer }
-  let(:rails_options) { { tracer: tracer } }
+RSpec.describe 'Rails ActionController' do
+  let(:rails_options) { {} }
 
-  before(:each) do
+  before do
     Datadog.configure do |c|
       c.use :rails, rails_options
       # Manually activate ActionPack to trigger patching.
@@ -13,10 +12,6 @@ RSpec.describe 'ActionController tracing' do
       # We aren't initializing a full Rails application here, so the patch doesn't auto-apply.
       c.use :action_pack
     end
-  end
-
-  def all_spans
-    tracer.writer.spans(:keep)
   end
 
   let(:controller) do
@@ -39,8 +34,8 @@ RSpec.describe 'ActionController tracing' do
         expect { result }.to_not raise_error
         expect(result).to be_a_kind_of(Array)
         expect(result).to have(3).items
-        expect(all_spans).to have(1).items
-        expect(all_spans.first.name).to eq('rails.action_controller')
+        expect(spans).to have(1).items
+        expect(spans.first.name).to eq('rails.action_controller')
       end
     end
 
@@ -55,7 +50,7 @@ RSpec.describe 'ActionController tracing' do
             let(:headers) { double('headers') }
             let(:body) { double('body') }
 
-            before(:each) do
+            before do
               expect_any_instance_of(controller).to receive(:response)
                 .at_least(:once)
                 .and_wrap_original do |m, *args|
@@ -68,8 +63,8 @@ RSpec.describe 'ActionController tracing' do
               expect { result }.to_not raise_error
               expect(result).to be_a_kind_of(Array)
               expect(result).to include(200, headers, body)
-              expect(all_spans).to have(1).items
-              expect(all_spans.first.name).to eq('rails.action_controller')
+              expect(spans).to have(1).items
+              expect(spans.first.name).to eq('rails.action_controller')
             end
           end
 
@@ -81,7 +76,7 @@ RSpec.describe 'ActionController tracing' do
               )
             end
 
-            before(:each) do
+            before do
               expect_any_instance_of(controller).to receive(:response)
                 .at_least(:once)
                 .and_wrap_original do |m, *args|
@@ -94,8 +89,8 @@ RSpec.describe 'ActionController tracing' do
               expect { result }.to_not raise_error
               expect(result).to be_a_kind_of(Array)
               expect(result).to have(3).items
-              expect(all_spans).to have(1).items
-              expect(all_spans.first.name).to eq('rails.action_controller')
+              expect(spans).to have(1).items
+              expect(spans.first.name).to eq('rails.action_controller')
             end
           end
         end

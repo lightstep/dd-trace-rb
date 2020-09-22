@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
 require 'racecar'
@@ -6,12 +6,7 @@ require 'racecar/cli'
 require 'active_support'
 require 'ddtrace'
 RSpec.describe 'Racecar patcher' do
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
-
-  def all_spans
-    tracer.writer.spans(:keep)
-  end
+  let(:configuration_options) { {} }
 
   before(:each) do
     Datadog.configure do |c|
@@ -24,6 +19,64 @@ RSpec.describe 'Racecar patcher' do
     Datadog.registry[:racecar].reset_configuration!
     example.run
     Datadog.registry[:racecar].reset_configuration!
+  end
+
+  describe 'for both single and batch message processing' do
+    let(:consumer) { 'DummyConsumer' }
+    let(:payload) { { consumer_class: consumer } }
+
+    let(:span) do
+      spans.select { |s| s.name == Datadog::Contrib::Racecar::Ext::SPAN_CONSUME }.first
+    end
+
+    context 'that doesn\'t raise an error' do
+      it 'is expected to send a span' do
+        ActiveSupport::Notifications.instrument('main_loop.racecar', payload)
+
+        span.tap do |span|
+          expect(span).to_not be nil
+          expect(span.service).to eq('racecar')
+          expect(span.name).to eq('racecar.consume')
+          expect(span.resource).to eq(consumer)
+          expect(span.get_tag('kafka.consumer')).to eq(consumer)
+          expect(span).to_not have_error
+        end
+      end
+    end
+
+    context 'that raises an error' do
+      let(:error_class) { Class.new(StandardError) }
+
+      it 'is expected to send a span' do
+        # Emulate failure
+        begin
+          ActiveSupport::Notifications.instrument('main_loop.racecar', payload) do
+            raise error_class
+          end
+        rescue error_class
+          nil
+        end
+
+        span.tap do |span|
+          expect(span).to_not be nil
+          expect(span.service).to eq('racecar')
+          expect(span.name).to eq('racecar.consume')
+          expect(span.resource).to eq(consumer)
+          expect(span.get_tag('kafka.consumer')).to eq(consumer)
+          expect(span).to have_error
+        end
+      end
+    end
+
+    it_behaves_like 'analytics for integration' do
+      before { ActiveSupport::Notifications.instrument('main_loop.racecar', payload) }
+      let(:analytics_enabled_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+    end
+
+    it_behaves_like 'measured span for integration', true do
+      before { ActiveSupport::Notifications.instrument('main_loop.racecar', payload) }
+    end
   end
 
   describe 'for single message processing' do
@@ -41,7 +94,7 @@ RSpec.describe 'Racecar patcher' do
     end
 
     let(:span) do
-      all_spans.select { |s| s.name == Datadog::Contrib::Racecar::Ext::SPAN_MESSAGE }.first
+      spans.select { |s| s.name == Datadog::Contrib::Racecar::Ext::SPAN_MESSAGE }.first
     end
 
     context 'that doesn\'t raise an error' do
@@ -55,8 +108,8 @@ RSpec.describe 'Racecar patcher' do
           expect(span.resource).to eq(consumer)
           expect(span.get_tag('kafka.topic')).to eq(topic)
           expect(span.get_tag('kafka.consumer')).to eq(consumer)
-          expect(span.get_tag('kafka.partition')).to eq(partition.to_s)
-          expect(span.get_tag('kafka.offset')).to eq(offset.to_s)
+          expect(span.get_tag('kafka.partition')).to eq(partition)
+          expect(span.get_tag('kafka.offset')).to eq(offset)
           expect(span.get_tag('kafka.first_offset')).to be nil
           expect(span).to_not have_error
         end
@@ -83,8 +136,8 @@ RSpec.describe 'Racecar patcher' do
           expect(span.resource).to eq(consumer)
           expect(span.get_tag('kafka.topic')).to eq(topic)
           expect(span.get_tag('kafka.consumer')).to eq(consumer)
-          expect(span.get_tag('kafka.partition')).to eq(partition.to_s)
-          expect(span.get_tag('kafka.offset')).to eq(offset.to_s)
+          expect(span.get_tag('kafka.partition')).to eq(partition)
+          expect(span.get_tag('kafka.offset')).to eq(offset)
           expect(span.get_tag('kafka.first_offset')).to be nil
           expect(span).to have_error
         end
@@ -95,6 +148,10 @@ RSpec.describe 'Racecar patcher' do
       before { ActiveSupport::Notifications.instrument('process_message.racecar', payload) }
       let(:analytics_enabled_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+    end
+
+    it_behaves_like 'measured span for integration', true do
+      before { ActiveSupport::Notifications.instrument('process_message.racecar', payload) }
     end
   end
 
@@ -115,7 +172,7 @@ RSpec.describe 'Racecar patcher' do
     end
 
     let(:span) do
-      all_spans.select { |s| s.name == Datadog::Contrib::Racecar::Ext::SPAN_BATCH }.first
+      spans.select { |s| s.name == Datadog::Contrib::Racecar::Ext::SPAN_BATCH }.first
     end
 
     context 'that doesn\'t raise an error' do
@@ -129,10 +186,10 @@ RSpec.describe 'Racecar patcher' do
           expect(span.resource).to eq(consumer)
           expect(span.get_tag('kafka.topic')).to eq(topic)
           expect(span.get_tag('kafka.consumer')).to eq(consumer)
-          expect(span.get_tag('kafka.partition')).to eq(partition.to_s)
+          expect(span.get_tag('kafka.partition')).to eq(partition)
           expect(span.get_tag('kafka.offset')).to be nil
-          expect(span.get_tag('kafka.first_offset')).to eq(offset.to_s)
-          expect(span.get_tag('kafka.message_count')).to eq(message_count.to_s)
+          expect(span.get_tag('kafka.first_offset')).to eq(offset)
+          expect(span.get_tag('kafka.message_count')).to eq(message_count)
           expect(span).to_not have_error
         end
       end
@@ -157,10 +214,10 @@ RSpec.describe 'Racecar patcher' do
           expect(span.resource).to eq(consumer)
           expect(span.get_tag('kafka.topic')).to eq(topic)
           expect(span.get_tag('kafka.consumer')).to eq(consumer)
-          expect(span.get_tag('kafka.partition')).to eq(partition.to_s)
+          expect(span.get_tag('kafka.partition')).to eq(partition)
           expect(span.get_tag('kafka.offset')).to be nil
-          expect(span.get_tag('kafka.first_offset')).to eq(offset.to_s)
-          expect(span.get_tag('kafka.message_count')).to eq(message_count.to_s)
+          expect(span.get_tag('kafka.first_offset')).to eq(offset)
+          expect(span.get_tag('kafka.message_count')).to eq(message_count)
           expect(span).to have_error
         end
       end
@@ -170,6 +227,10 @@ RSpec.describe 'Racecar patcher' do
       before { ActiveSupport::Notifications.instrument('process_batch.racecar', payload) }
       let(:analytics_enabled_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+    end
+
+    it_behaves_like 'measured span for integration', true do
+      before { ActiveSupport::Notifications.instrument('process_batch.racecar', payload) }
     end
   end
 end

@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'rack/test'
 
 require 'rack'
@@ -8,11 +8,7 @@ require 'ddtrace/contrib/rack/middlewares'
 RSpec.describe 'Rack integration distributed tracing' do
   include Rack::Test::Methods
 
-  let(:tracer) { get_test_tracer }
-  let(:rack_options) { { tracer: tracer } }
-
-  let(:spans) { tracer.writer.spans }
-  let(:span) { spans.first }
+  let(:rack_options) { {} }
 
   before(:each) do
     Datadog.configure do |c|
@@ -30,7 +26,7 @@ RSpec.describe 'Rack integration distributed tracing' do
         use Datadog::Contrib::Rack::TraceMiddleware
 
         map '/' do
-          run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, 'OK'] })
+          run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
         end
       end.to_app
     end
@@ -76,7 +72,7 @@ RSpec.describe 'Rack integration distributed tracing' do
       expect(span.name).to eq('rack.request')
       expect(span.trace_id).to_not eq(trace_id)
       expect(span.parent_id).to eq(0)
-      expect(span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to be nil
+      expect(span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to_not be nil
       expect(span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY)).to be nil
     end
   end

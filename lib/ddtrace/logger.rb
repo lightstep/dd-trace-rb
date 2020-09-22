@@ -1,15 +1,16 @@
 require 'logger'
 
 module Datadog
-  LOG_PREFIX = 'ddtrace'.freeze
-
   # A custom logger with minor enhancements:
   # - progname defaults to ddtrace to clearly identify Datadog dd-trace-rb related messages
   # - adds last caller stack-trace info to know where the message comes from
   class Logger < ::Logger
+    PREFIX = 'ddtrace'.freeze
+
     def initialize(*args, &block)
       super
-      self.progname = LOG_PREFIX
+      self.progname = PREFIX
+      self.level = ::Logger::INFO
     end
 
     def add(severity, message = nil, progname = nil, &block)
