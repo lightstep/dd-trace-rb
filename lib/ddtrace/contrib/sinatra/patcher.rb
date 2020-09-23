@@ -9,23 +9,18 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:sinatra)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:sinatra) do
-            begin
-              require 'ddtrace/contrib/sinatra/tracer'
-              register_tracer
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Sinatra integration: #{e}")
-            end
-          end
+          require 'ddtrace/contrib/sinatra/tracer'
+          register_tracer
         end
 
         def register_tracer
           ::Sinatra.send(:register, Datadog::Contrib::Sinatra::Tracer)
+          ::Sinatra::Base.send(:prepend, Sinatra::Tracer::Base)
         end
       end
     end

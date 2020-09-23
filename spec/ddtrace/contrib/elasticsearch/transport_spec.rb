@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'time'
 require 'elasticsearch-transport'
 require 'faraday'
@@ -22,11 +22,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
   let(:server) { "http://#{host}:#{port}" }
 
   let(:client) { Elasticsearch::Client.new(url: server) }
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
-
-  let(:spans) { tracer.writer.spans }
-  let(:span) { spans.first }
+  let(:configuration_options) { {} }
 
   before(:each) do
     Datadog.configure do |c|
@@ -86,7 +82,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
           expect(span.get_tag('elasticsearch.params')).to be nil
           expect(span.get_tag('elasticsearch.body')).to be nil
           expect(span.get_tag('out.host')).to eq(host)
-          expect(span.get_tag('out.port')).to eq(port.to_s)
+          expect(span.get_tag('out.port')).to eq(port)
         end
       end
 
@@ -115,7 +111,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
             expect(span.get_tag('elasticsearch.params')).to eq(params.to_json)
             expect(span.get_tag('elasticsearch.body')).to eq('{"data1":"?","data2":"?"}')
             expect(span.get_tag('out.host')).to eq(host)
-            expect(span.get_tag('out.port')).to eq(port.to_s)
+            expect(span.get_tag('out.port')).to eq(port)
           end
         end
 

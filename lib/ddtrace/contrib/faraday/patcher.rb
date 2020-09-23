@@ -1,6 +1,7 @@
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/faraday/ext'
+require 'ddtrace/contrib/faraday/connection'
 require 'ddtrace/contrib/faraday/rack_builder'
 
 module Datadog
@@ -12,22 +13,16 @@ module Datadog
 
         module_function
 
-        def patched?
-          done?(:faraday)
+        def target_version
+          Integration.version
         end
 
         def patch
-          do_once(:faraday) do
-            begin
-              require 'ddtrace/contrib/faraday/middleware'
+          require 'ddtrace/contrib/faraday/middleware'
 
-              add_pin!
-              register_middleware!
-              add_default_middleware!
-            rescue StandardError => e
-              Datadog::Tracer.log.error("Unable to apply Faraday integration: #{e}")
-            end
-          end
+          add_pin!
+          register_middleware!
+          add_default_middleware!
         end
 
         def add_pin!
@@ -36,7 +31,7 @@ module Datadog
               get_option(:service_name),
               app: Ext::APP,
               app_type: Datadog::Ext::AppTypes::WEB,
-              tracer: get_option(:tracer)
+              tracer: -> { get_option(:tracer) }
             ).onto(::Faraday)
         end
 
@@ -45,7 +40,23 @@ module Datadog
         end
 
         def add_default_middleware!
-          ::Faraday::RackBuilder.send(:prepend, RackBuilder)
+          if target_version >= Gem::Version.new('1.0.0')
+            # Patch the default connection (e.g. +Faraday.get+)
+            ::Faraday.default_connection.use(:ddtrace)
+
+            # Patch new connection instances (e.g. +Faraday.new+)
+            ::Faraday::Connection.send(:prepend, Connection)
+          else
+            # Patch the default connection (e.g. +Faraday.get+)
+            #
+            # We insert our middleware before the 'adapter', which is
+            # always the last handler.
+            idx = ::Faraday.default_connection.builder.handlers.size - 1
+            ::Faraday.default_connection.builder.insert(idx, Middleware)
+
+            # Patch new connection instances (e.g. +Faraday.new+)
+            ::Faraday::RackBuilder.send(:prepend, RackBuilder)
+          end
         end
 
         def get_option(option)
@@ -62,17 +73,13 @@ module Datadog
             Upgrade to the configuration API using the migration guide here:
             https://github.com/DataDog/dd-trace-rb/releases/tag/v0.11.0).freeze
 
-          def tracer=(tracer)
-            Datadog.configuration[:faraday][:tracer] = tracer
-          end
-
           def service_name=(service_name)
             Datadog.configuration[:faraday][:service_name] = service_name
           end
 
           def log_deprecation_warning(method_name)
             do_once(method_name) do
-              Datadog::Tracer.log.warn("#{method_name}:#{DEPRECATION_WARNING}")
+              Datadog.logger.warn("#{method_name}:#{DEPRECATION_WARNING}")
             end
           end
         end

@@ -1,28 +1,20 @@
-require 'spec_helper'
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
 require 'ddtrace'
 require 'mongo'
 
 RSpec.describe 'Mongo::Client instrumentation' do
-  let(:tracer) { get_test_tracer }
-  let(:configuration_options) { { tracer: tracer } }
+  let(:configuration_options) { {} }
 
   let(:client) { Mongo::Client.new(["#{host}:#{port}"], client_options) }
   let(:client_options) { { database: database } }
   let(:host) { ENV.fetch('TEST_MONGODB_HOST', '127.0.0.1') }
-  let(:port) { ENV.fetch('TEST_MONGODB_PORT', 27017) }
+  let(:port) { ENV.fetch('TEST_MONGODB_PORT', 27017).to_i }
   let(:database) { 'test' }
   let(:collection) { :artists }
 
-  let(:spans) { tracer.writer.spans(:keep) }
-  let(:span) { spans.first }
-
   let(:mongo_gem_version) { Gem.loaded_specs['mongo'].version }
-
-  def discard_spans!
-    tracer.writer.spans
-  end
 
   before(:each) do
     # Disable Mongo logging
@@ -88,15 +80,18 @@ RSpec.describe 'Mongo::Client instrumentation' do
         expect(span.service).to eq('mongodb')
         expect(span.span_type).to eq('mongodb')
         expect(span.get_tag('mongodb.db')).to eq(database)
-        expect(span.get_tag('mongodb.collection')).to eq(collection.to_s)
+        collection_value = collection.is_a?(Numeric) ? collection : collection.to_s
+        expect(span.get_tag('mongodb.collection')).to eq(collection_value)
         expect(span.get_tag('out.host')).to eq(host)
-        expect(span.get_tag('out.port')).to eq(port.to_s)
+        expect(span.get_tag('out.port')).to eq(port)
       end
 
       it_behaves_like 'analytics for integration' do
         let(:analytics_enabled_var) { Datadog::Contrib::MongoDB::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::MongoDB::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
+
+      it_behaves_like 'measured span for integration', false
     end
 
     # Expects every value (except for keys) to be quantized.
@@ -153,7 +148,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
           else
             expect(span.resource).to be_quantized.except('operation' => 'insert', 'database' => database, 'collection' => collection.to_s)
           end
-          expect(span.get_tag('mongodb.rows')).to eq('1')
+          expect(span.get_tag('mongodb.rows')).to eq(1)
         end
       end
 
@@ -169,7 +164,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
           else
             expect(span.resource).to be_quantized.except('operation' => 'insert', 'database' => database, 'collection' => collection.to_s)
           end
-          expect(span.get_tag('mongodb.rows')).to eq('1')
+          expect(span.get_tag('mongodb.rows')).to eq(1)
         end
       end
     end
@@ -195,7 +190,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
           else
             expect(span.resource).to be_quantized.except('operation' => 'insert', 'database' => database, 'collection' => collection.to_s)
           end
-          expect(span.get_tag('mongodb.rows')).to eq('2')
+          expect(span.get_tag('mongodb.rows')).to eq(2)
         end
       end
     end
@@ -206,7 +201,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       before(:each) do
         # Insert a document
         client[collection].insert_one(name: 'Steve', hobbies: ['hiking', 'tennis', 'fly fishing'])
-        discard_spans!
+        clear_spans!
 
         # Do #find_all operation
         client[collection].find.each do |document|
@@ -232,7 +227,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       before(:each) do
         # Insert a document
         client[collection].insert_one(name: 'Steve', hobbies: ['hiking'])
-        discard_spans!
+        clear_spans!
 
         # Do #find operation
         result = client[collection].find(name: 'Steve').first[:hobbies]
@@ -257,7 +252,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       before(:each) do
         # Insert a document
         client[collection].insert_one(name: 'Sally', hobbies: ['skiing', 'stamp collecting'])
-        discard_spans!
+        clear_spans!
 
         # Do #update_one operation
         client[collection].update_one({ name: 'Sally' }, '$set' => { 'phone_number' => '555-555-5555' })
@@ -276,7 +271,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         else
           expect(span.resource).to be_quantized.except('operation' => 'update', 'database' => database, 'collection' => collection.to_s)
         end
-        expect(span.get_tag('mongodb.rows')).to eq('1')
+        expect(span.get_tag('mongodb.rows')).to eq(1)
       end
     end
 
@@ -292,7 +287,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       before(:each) do
         # Insert documents
         client[collection].insert_many(documents)
-        discard_spans!
+        clear_spans!
 
         # Do #update_many operation
         client[collection].update_many({}, '$set' => { 'phone_number' => '555-555-5555' })
@@ -313,7 +308,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         else
           expect(span.resource).to be_quantized.except('operation' => 'update', 'database' => database, 'collection' => collection.to_s)
         end
-        expect(span.get_tag('mongodb.rows')).to eq('2')
+        expect(span.get_tag('mongodb.rows')).to eq(2)
       end
     end
 
@@ -323,7 +318,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       before(:each) do
         # Insert a document
         client[collection].insert_one(name: 'Sally', hobbies: ['skiing', 'stamp collecting'])
-        discard_spans!
+        clear_spans!
 
         # Do #delete_one operation
         client[collection].delete_one(name: 'Sally')
@@ -342,7 +337,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         else
           expect(span.resource).to be_quantized.except('operation' => 'delete', 'database' => database, 'collection' => collection.to_s)
         end
-        expect(span.get_tag('mongodb.rows')).to eq('1')
+        expect(span.get_tag('mongodb.rows')).to eq(1)
       end
     end
 
@@ -358,7 +353,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       before(:each) do
         # Insert documents
         client[collection].insert_many(documents)
-        discard_spans!
+        clear_spans!
 
         # Do #delete_many operation
         client[collection].delete_many(name: /$S*/)
@@ -379,7 +374,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         else
           expect(span.resource).to be_quantized.except('operation' => 'delete', 'database' => database, 'collection' => collection.to_s)
         end
-        expect(span.get_tag('mongodb.rows')).to eq('2')
+        expect(span.get_tag('mongodb.rows')).to eq(2)
       end
     end
 

@@ -14,26 +14,29 @@ module LogHelpers
   end
 
   def without_errors
-    level = Datadog::Tracer.log.level
-    Datadog::Tracer.log.level = Logger::FATAL
+    level = Datadog.logger.level
+    Datadog.configure { |c| c.logger.level = Logger::FATAL }
+
     begin
       yield
     ensure
-      Datadog::Tracer.log.level = level
+      Datadog.configure { |c| c.logger.level = level }
     end
   end
 
   shared_context 'tracer logging' do
     let(:log_buffer) { StringIO.new }
 
-    before(:each) do
-      @default_logger = Datadog::Tracer.log
-      Datadog::Tracer.log = Datadog::Logger.new(log_buffer)
-      Datadog::Tracer.log.level = ::Logger::WARN
+    before do
+      @default_logger = Datadog.logger
+      Datadog.configure do |c|
+        c.logger = Datadog::Logger.new(log_buffer)
+        c.logger.level = ::Logger::WARN
+      end
     end
 
-    after(:each) do
-      Datadog::Tracer.log = @default_logger
+    after do
+      Datadog.configure { |c| c.logger = @default_logger }
     end
 
     # Checks buffer to see if it contains lines that match all patterns.

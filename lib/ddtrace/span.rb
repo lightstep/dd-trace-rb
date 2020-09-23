@@ -4,8 +4,10 @@ require 'thread'
 require 'ddtrace/utils'
 require 'ddtrace/ext/errors'
 require 'ddtrace/ext/priority'
+require 'ddtrace/environment'
 require 'ddtrace/analytics'
 require 'ddtrace/forced_tracing'
+require 'ddtrace/diagnostics/health'
 
 module Datadog
   # Represents a logical unit of work in the system. Each trace consists of one or more spans.
@@ -29,6 +31,9 @@ module Datadog
     # While we only generate 63-bit integers due to limitations in other languages, we support
     # parsing 64-bit integers for distributed tracing since an upstream system may generate one
     EXTERNAL_MAX_ID = 2**64
+
+    # This limit is for numeric tags because uint64 could end up rounded.
+    NUMERIC_TAG_SIZE_RANGE = (-2**53..2**53)
 
     attr_accessor :name, :service, :resource, :span_type,
                   :start_time, :end_time,
@@ -79,29 +84,70 @@ module Datadog
     #
     #   span.set_tag('http.method', request.method)
     def set_tag(key, value = nil)
-      @meta[key] = value.to_s
+      # Keys must be unique between tags and metrics
+      @metrics.delete(key)
+
+      # Ensure `http.status_code` is always a string so it is added to
+      #   @meta instead of @metrics
+      # DEV: This is necessary because the agent looks to `meta['http.status_code']` for
+      #   tagging necessary metrics
+      value = value.to_s if key == Ext::HTTP::STATUS_CODE
+
+      # NOTE: Adding numeric tags as metrics is stop-gap support
+      #       for numeric typed tags. Eventually they will become
+      #       tags again.
+      # Any numeric that is not an integer greater than max size is logged as a metric.
+      # Everything else gets logged as a tag.
+      if value.is_a?(Numeric) && !(value.is_a?(Integer) && !NUMERIC_TAG_SIZE_RANGE.cover?(value))
+        set_metric(key, value)
+      else
+        @meta[key] = value.to_s
+      end
     rescue StandardError => e
-      Datadog::Tracer.log.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
+      Datadog.logger.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
+    end
+
+    # Sets tags from given hash, for each key in hash it sets the tag with that key
+    # and associated value from the hash. It is shortcut for `set_tag`. Keys and values
+    # of the hash must be strings. Note that nested hashes are not supported.
+    # A valid example is:
+    #
+    #   span.set_tags({ "http.method" => "GET", "user.id" => "234" })
+    def set_tags(tags)
+      tags.each { |k, v| set_tag(k, v) }
+    end
+
+    # This method removes a tag for the given key.
+    def clear_tag(key)
+      @meta.delete(key)
     end
 
     # Return the tag with the given key, nil if it doesn't exist.
     def get_tag(key)
-      @meta[key]
+      @meta[key] || @metrics[key]
     end
 
     # This method sets a tag with a floating point value for the given key. It acts
     # like `set_tag()` and it simply add a tag without further processing.
     def set_metric(key, value)
+      # Keys must be unique between tags and metrics
+      @meta.delete(key)
+
       # enforce that the value is a floating point number
       value = Float(value)
       @metrics[key] = value
     rescue StandardError => e
-      Datadog::Tracer.log.debug("Unable to set the metric #{key}, ignoring it. Caused by: #{e}")
+      Datadog.logger.debug("Unable to set the metric #{key}, ignoring it. Caused by: #{e}")
+    end
+
+    # This method removes a metric for the given key. It acts like {#remove_tag}.
+    def clear_metric(key)
+      @metrics.delete(key)
     end
 
     # Return the metric with the given key, nil if it doesn't exist.
     def get_metric(key)
-      @metrics[key]
+      @metrics[key] || @meta[key]
     end
 
     # Mark the span with the given error.
@@ -137,13 +183,14 @@ module Datadog
       # spans without a service would be dropped, so here we provide a default.
       # This should really never happen with integrations in contrib, as a default
       # service is always set. It's only for custom instrumentation.
-      @service ||= @tracer.default_service unless @tracer.nil?
+      @service ||= (@tracer && @tracer.default_service)
 
       begin
         @context.close_span(self)
         @tracer.record(self)
       rescue StandardError => e
-        Datadog::Tracer.log.debug("error recording finished trace: #{e}")
+        Datadog.logger.debug("error recording finished trace: #{e}")
+        Datadog.health_metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
       end
       self
     end

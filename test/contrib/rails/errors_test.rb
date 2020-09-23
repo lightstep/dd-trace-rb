@@ -1,24 +1,17 @@
 require 'helper'
+require 'minitest/around/unit'
 
 require 'contrib/rails/test_helper'
+require 'ddtrace'
 
 # rubocop:disable Metrics/ClassLength
 class TracingControllerTest < ActionController::TestCase
-  setup do
-    @original_tracer = Datadog.configuration[:rails][:tracer]
-    @tracer = get_test_tracer
-    Datadog.configuration[:rails][:tracer] = @tracer
-  end
-
-  teardown do
-    Datadog.configuration[:rails][:tracer] = @original_tracer
-  end
+  include RailsTest
 
   test 'error in the controller must be traced' do
     assert_raises ZeroDivisionError do
       get :error
     end
-    spans = @tracer.writer.spans()
     assert_equal(spans.length, 1)
 
     span = spans[0]
@@ -37,7 +30,6 @@ class TracingControllerTest < ActionController::TestCase
       get :not_found
     end
 
-    spans = @tracer.writer.spans()
     assert_equal(spans.length, 1)
 
     span = spans[0]
@@ -54,12 +46,13 @@ class TracingControllerTest < ActionController::TestCase
   end
 
   test 'missing rendering should close the template Span' do
+    skip 'Recent versions use events, and cannot suffer from this issue' if Rails.version >= '4.0.0'
+
     # this route raises an exception, but the notification `render_template.action_view`
     # is not fired, causing unfinished spans; this test protects from regressions
     assert_raises ::ActionView::MissingTemplate do
       get :missing_template
     end
-    spans = @tracer.writer.spans()
     assert_equal(spans.length, 2)
 
     span_request, span_template = spans
@@ -84,6 +77,8 @@ class TracingControllerTest < ActionController::TestCase
   end
 
   test 'missing partial rendering should close the template Span' do
+    skip 'Recent versions use events, and cannot suffer from this issue' if Rails.version >= '4.0.0'
+
     # this route raises an exception, but the notification `render_partial.action_view`
     # is not fired, causing unfinished spans; this test protects from regressions
     assert_raises ::ActionView::Template::Error do
@@ -96,7 +91,6 @@ class TracingControllerTest < ActionController::TestCase
                   'Missing partial tracing/ouch.html'
                 end
 
-    spans = @tracer.writer.spans()
     assert_equal(spans.length, 3)
     span_request, span_partial, span_template = spans
 
@@ -121,7 +115,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_template.name, 'rails.render_template')
     assert_equal(span_template.status, 1)
     assert_equal(span_template.span_type, 'template')
-    assert_equal(span_template.resource, 'rails.render_template')
+    assert_equal(span_template.resource, 'tracing/missing_partial.html.erb')
     assert_equal(span_template.get_tag('rails.template_name'), 'tracing/missing_partial.html.erb')
     assert_equal(span_template.get_tag('rails.layout'), 'layouts/application')
     assert_includes(span_template.get_tag('error.msg'), error_msg)
@@ -132,7 +126,6 @@ class TracingControllerTest < ActionController::TestCase
     assert_raises ::ActionView::Template::Error do
       get :error_template
     end
-    spans = @tracer.writer.spans()
     assert_equal(spans.length, 2)
 
     span_request, span_template = spans
@@ -149,8 +142,9 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_template.name, 'rails.render_template')
     assert_equal(span_template.status, 1)
     assert_equal(span_template.span_type, 'template')
-    assert_equal(span_template.resource, 'rails.render_template')
+    assert_includes(span_template.resource, 'tracing/error.html')
     if Rails.version >= '3.2.22.5'
+      assert_equal(span_template.resource, 'tracing/error.html.erb')
       assert_equal(span_template.get_tag('rails.template_name'),
                    'tracing/error.html.erb')
     end
@@ -168,7 +162,6 @@ class TracingControllerTest < ActionController::TestCase
     assert_raises ::ActionView::Template::Error do
       get :error_partial
     end
-    spans = @tracer.writer.spans()
     assert_equal(spans.length, 3)
 
     span_request, span_partial, span_template = spans
@@ -185,8 +178,9 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_partial.name, 'rails.render_partial')
     assert_equal(span_partial.status, 1)
     assert_equal(span_partial.span_type, 'template')
-    assert_equal(span_partial.resource, 'rails.render_partial')
+    assert_includes(span_partial.resource, 'tracing/_inner_error.html')
     if Rails.version >= '3.2.22.5'
+      assert_equal(span_partial.resource, 'tracing/_inner_error.html.erb')
       assert_equal(span_partial.get_tag('rails.template_name'),
                    'tracing/_inner_error.html.erb')
     end
@@ -197,7 +191,7 @@ class TracingControllerTest < ActionController::TestCase
     assert_equal(span_template.name, 'rails.render_template')
     assert_equal(span_template.status, 1)
     assert_equal(span_template.span_type, 'template')
-    assert_equal(span_template.resource, 'rails.render_template')
+    assert_includes(span_template.resource, 'tracing/error_partial.html')
     if Rails.version >= '3.2.22.5'
       assert_equal(span_template.get_tag('rails.template_name'),
                    'tracing/error_partial.html.erb')
