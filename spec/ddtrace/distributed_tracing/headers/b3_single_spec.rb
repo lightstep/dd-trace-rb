@@ -37,7 +37,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::B3Single do
                              span_id: 20000)
       end
 
-      it { is_expected.to eq(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE => "#{format_id(10000)}-#{format_id(20000)}") }
+      it { is_expected.to eq(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE => "#{format_id(10000)}-#{format_id(20000)}") } # rubocop:disable Metrics/LineLength
 
       [
         [-1, 0],
@@ -52,7 +52,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::B3Single do
                                  sampling_priority: value)
           end
 
-          it { is_expected.to eq(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE => "#{format_id(50000)}-#{format_id(60000)}-#{expected}") }
+          it { is_expected.to eq(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE => "#{format_id(50000)}-#{format_id(60000)}-#{expected}") } # rubocop:disable Metrics/LineLength
         end
       end
 
@@ -63,7 +63,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::B3Single do
                                origin: 'synthetics')
         end
 
-        it { is_expected.to eq(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE => "#{format_id(90000)}-#{format_id(100000)}") }
+        it { is_expected.to eq(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE => "#{format_id(90000)}-#{format_id(100000)}") } # rubocop:disable Metrics/LineLength
       end
     end
   end
@@ -77,7 +77,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::B3Single do
     end
 
     context 'with trace_id and span_id' do
-      let(:env) { { env_header(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE) => "#{format_id(90000)}-#{format_id(100000)}" } }
+      let(:env) { { env_header(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE) => "#{format_id(90000)}-#{format_id(100000)}" } } # rubocop:disable Metrics/LineLength
 
       it { expect(context.trace_id).to eq(90000) }
       it { expect(context.span_id).to eq(100000) }
@@ -85,14 +85,14 @@ RSpec.describe Datadog::DistributedTracing::Headers::B3Single do
       it { expect(context.origin).to be_nil }
 
       context 'with sampling priority' do
-        let(:env) { { env_header(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE) => "#{format_id(90000)}-#{format_id(100000)}-1" } }
+        let(:env) { { env_header(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE) => "#{format_id(90000)}-#{format_id(100000)}-1" } } # rubocop:disable Metrics/LineLength
         it { expect(context.trace_id).to eq(90000) }
         it { expect(context.span_id).to eq(100000) }
         it { expect(context.sampling_priority).to eq(1) }
         it { expect(context.origin).to be_nil }
 
         context 'with parent_id' do
-          let(:env) { { env_header(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE) => "#{format_id(90000)}-#{format_id(100000)}-1-#{format_id(20000)}" } }
+          let(:env) { { env_header(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE) => "#{format_id(90000)}-#{format_id(100000)}-1-#{format_id(20000)}" } } # rubocop:disable Metrics/LineLength
           it { expect(context.trace_id).to eq(90000) }
           it { expect(context.span_id).to eq(100000) }
           it { expect(context.sampling_priority).to eq(1) }
@@ -102,7 +102,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::B3Single do
     end
 
     context 'with trace_id' do
-      let(:env) { { env_header(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE) => format_id(90000) } }
+      let(:env) { { env_header(Datadog::Ext::DistributedTracing::B3_HEADER_SINGLE) => format_id(90000) } } # rubocop:disable Metrics/LineLength
       it { is_expected.to be_nil }
     end
   end
