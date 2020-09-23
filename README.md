@@ -32,9 +32,9 @@ DD_TRACE_AGENT_PORT=<Satellite port>
 
 ##### Public satellites
 
-LightStep's public satellites require data to be transmitted using HTTPS. Since Datadog's Ruby client transmits data over plain HTTP, you will have use the [LightStep reverse proxy][ls-reverse-proxy]. The reverse proxy will accept data over plain HTTP and forward it to the public satellites using HTTPS. By default the reverse proxy will forward requests to `ingest.lightstep.com`, but can be configured by passing additional options. See below for details.
+If you’re using Lightstep’s Public Satellites, you need to run a proxy that encrypts the trace payload before it reaches Lightstep. Point your tracer to the Proxy instead of the Satellites. The proxy can be run as a side-car to your application. Lightstep provides a docker image to make this simple.
 
-To start the reverse proxy with defaults run:
+To start the proxy with defaults, run:
 
 ```
 docker run -p 8126:8126 lightstep/reverse-proxy:latest
@@ -46,7 +46,7 @@ You can see the complete list of options using the --help flag
 docker run lightstep/reverse-proxy:latest --help
 ```
 
-If you run the reverse proxy on `localhost` and port 8126 no additional configuration is needed. If you are running on a different host or port you'll need to set the following enviroment variables:
+If you run the proxy on `localhost` and port 8126 no additional configuration is needed. If you are running on a different host or port you'll need to set the following enviroment variables:
 
 ```
 DD_AGENT_HOST=<proxy host>
@@ -87,6 +87,7 @@ ls-trace follows its own versioning scheme. The table below shows the correspond
 | ls-trace version | dd-trace-rb version |
 |------------------|---------------------|
 | v0.1.1           | v0.29.0             |
+| v0.2.0           | v0.40.0             |
 
 ## Support
 
